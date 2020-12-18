@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="css/reset.css">
+    <title>文件上传</title>
+</head>
+<body>
+<div class="d-upload-box">
+    <div class="d-title"><img src="images/attachment.png">&nbsp;上传正文</div>
+    <!-- 未上传部分 -->
+    <div class="d-upload" onclick="clickUpLoad('upload-new')">
+        <input type="file" id="upload-new" class="upload-new" accept="*"
+               onchange="uploadFile('upload-new')">
+        <span class="icon-upload"></span>
+        上传文件，请&nbsp;<span style="color:#325ce1;">点击上传</span>
+    </div>
+    <!-- 已上传部分 -->
+    <div class="d-already-upload">
+        <div class="d-tips"><img src="images/icon_info@2x.png">文件上传成功；仅支持单文件附件，如需再次上传，请先删除已有文件。</div>
+        <div class="d-file">
+            <div class="left">
+                <img class="img-png" src="images/icon_png.png">
+                <img class="img-pdf" src="images/AdobePdf.png">
+                <img class="img-word" src="images/Word.png">
+                <img class="img-excel" src="images/Excel.png">
+                <span class="s-file-name"></span>
+                <span class="right s-file-size"></span>
+            </div>
+            <div class="right">
+                <span id="progress" style="display:none">上传中</span>
+                <span class="s-text"><i class="icon icon-success"></i>成功</span>
+                <!--                <i class="icon icon-view" title="预览"></i>-->
+                <i class="icon icon-replace" title="替换" onclick="clickUpLoad('upload-replace')">
+                    <input type="file" id="upload-replace" class="upload-replace"
+                           accept="*"
+                           onchange="uploadFile('upload-replace')">
+                </i>
+                <i class="icon icon-del" title="删除" onclick="openModal()"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除弹窗 -->
+    <div class="d-modal">
+        <div class="d-modal-content">
+            <div class="d-modal-head">
+                <div class="d-modal-head-left">操作窗口</div>
+                <div class="d-modal-head-right" onclick="closeModal()"></div>
+            </div>
+            <div class="d-modal-body">
+                <div class="d-modal-body-left"></div>
+                <div class="d-modal-body-right">
+                    <div class="d-modal-body-title">确定删除？</div>
+                    <div>
+                        <div class="d-btn" onclick="deleteFile()">确定</div>
+                        <div class="d-btn" onclick="closeModal()">取消</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="js/jquery.min.js"></script>
+<script type="text/javascript">
+    // 将点击事件移到上传文件上
+    function clickUpLoad(str) {
+        document.getElementById(str).click();
+    }
+
+    // 回显文件图标，文件名，文件大小
+    function fileChange(className) {
+        $('.d-already-upload').css('display', 'block');
+        $('.d-upload').css('display', 'none');
+        var fileObj = document.getElementById(className).files[0]; // js 获取文件对象
+        var index = fileObj.name.lastIndexOf(".");
+        var fileType = fileObj.name.substr(index + 1);
+        $('.img-png,.img-pdf,.img-word,.img-excel').css('display', 'none');
+        if (fileType === 'png' || fileType === 'PNG' || fileType === 'jpg' || fileType === 'JPG') {
+            $('.img-png').css('display', 'inline-block');
+        }
+        if (fileType === 'pdf' || fileType === 'PDF') {
+            $('.img-pdf').css('display', 'inline-block');
+        }
+        if (fileType === 'doc' || fileType === 'DOC' || fileType === 'docx' || fileType === 'DOCX') {
+            $('.img-word').css('display', 'inline-block');
+        }
+        if (fileType === 'xlsx' || fileType === 'XLSX') {
+            $('.img-excel').css('display', 'inline-block');
+        }
+        $('.s-file-name').text(fileObj.name);
+        $('.s-file-name').attr('title', fileObj.name);
+        var fileSize = '';
+        if (fileObj.size > 1024 * 1024) {
+            fileSize = (fileObj.size / 1024 / 1024).toFixed(2) + 'M';
+        } else if (fileObj.size > 1024) {
+            fileSize = (fileObj.size / 1024).toFixed(2) + 'KB';
+        }
+        $('.s-file-size').text(fileSize);
+    }
+
+    // 文件上传
+    function uploadFile(className) {
+        fileChange(className)
+        var fd = new FormData();
+        fd.append("file", document.getElementById(className).files[0]);
+        var xhr = new XMLHttpRequest();
+        // 上传中设置上传的百分比
+        xhr.upload.addEventListener("progress", function (evt) {
+            if (evt.lengthComputable) {
+                var percentComplete = Math.round(evt.loaded * 100 / evt.total);
+                $('#progress').innerHTML = '上传中' + percentComplete + "%";
+            } else {
+                $('#progress').innerHTML = '无法计算';
+            }
+        }, false);
+        // 请求完成后执行的操作
+        xhr.addEventListener("load", function (evt) {
+            var message = evt.target.responseText,
+                obj = eval("(" + message + ")");
+            if (obj.status == 1) {
+                $('#progress').innerHTML = "已上传";
+                alert("上传成功!");
+            } else {
+                alert(obj.message);
+            }
+
+        }, false);
+        // 请求error
+        xhr.addEventListener("error", uploadFailed, false);
+        // 请求中断
+        xhr.addEventListener("abort", uploadCanceled, false);
+        // 发送请求
+        var url = '';
+        xhr.open("POST", url);
+        xhr.send(fd);
+    }
+
+    // 请求error
+    function uploadFailed(evt) {
+        alert("上传出错.");
+    }
+
+    // 请求中断
+    function uploadCanceled(evt) {
+        alert("上传已由用户或浏览器取消删除连接.");
+    }
+
+    // 打开删除弹窗
+    function openModal() {
+        $('.d-modal').css('display', 'block');
+    }
+
+    // 关闭删除弹窗
+    function closeModal() {
+        $('.d-modal').css('display', 'none');
+    }
+
+    // 删除文件
+    function deleteFile() {
+        $('.img-png,.img-pdf,.img-word,.img-excel').css('display', 'none');
+        $('.s-file-name').text('');
+        $('.s-file-name').attr('title', '');
+        $('.s-file-size').text('');
+        $('.d-already-upload').css('display', 'none');
+        $('.d-upload').css('display', 'block');
+        $('.d-modal').css('display', 'none');
+    }
+</script>
+</body>
+</html>
+
+
